@@ -1,0 +1,912 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Khmer Unicode Character Ordering — Interactive Demo</title>
+<style>
+  :root {
+    --blue: #1a5276; --mid: #2e86c1; --accent: #1f618d; --light-blue: #d6eaf8;
+    --dark: #2c3e50; --grey: #7f8c8d; --light: #f8f9fa; --warn: #e74c3c;
+    --ok: #27ae60; --orange: #f39c12; --bg: #ffffff;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: 'Segoe UI', system-ui, -apple-system, sans-serif; background: var(--light); color: var(--dark); line-height: 1.7; }
+
+  /* NAV */
+  .nav { position: fixed; top: 0; left: 0; right: 0; z-index: 100; background: var(--blue); color: #fff; padding: 0; box-shadow: 0 2px 12px rgba(0,0,0,.15); }
+  .nav-inner { max-width: 1200px; margin: 0 auto; display: flex; align-items: center; gap: 8px; padding: 10px 24px; flex-wrap: wrap; }
+  .nav-title { font-weight: 700; font-size: 15px; margin-right: 12px; white-space: nowrap; }
+  .nav a { color: rgba(255,255,255,.85); text-decoration: none; font-size: 13px; padding: 4px 10px; border-radius: 4px; transition: .2s; white-space: nowrap; }
+  .nav a:hover, .nav a.active { background: rgba(255,255,255,.18); color: #fff; }
+
+  /* LAYOUT */
+  .container { max-width: 960px; margin: 0 auto; padding: 80px 24px 60px; }
+  section { margin-bottom: 64px; scroll-margin-top: 70px; }
+
+  /* HERO */
+  .hero { text-align: center; padding: 80px 20px 40px; }
+  .hero h1 { font-size: clamp(28px, 5vw, 42px); color: var(--blue); margin-bottom: 12px; line-height: 1.2; }
+  .hero .sub { font-size: 18px; color: var(--grey); max-width: 640px; margin: 0 auto 24px; }
+  .hero .author { font-size: 14px; color: var(--accent); }
+
+  h2 { font-size: 26px; color: var(--blue); margin-bottom: 16px; padding-bottom: 8px; border-bottom: 3px solid var(--mid); }
+  h3 { font-size: 20px; color: var(--accent); margin: 24px 0 12px; }
+  p { margin-bottom: 14px; }
+
+  /* CARDS */
+  .card { background: #fff; border-radius: 12px; padding: 28px; margin-bottom: 24px; box-shadow: 0 2px 12px rgba(0,0,0,.06); border: 1px solid #e8ecef; }
+  .card.highlight { border-left: 5px solid var(--mid); }
+  .card.warn { border-left: 5px solid var(--warn); background: #fdf2f2; }
+  .card.ok { border-left: 5px solid var(--ok); background: #f0faf4; }
+  .card.note { border-left: 5px solid var(--orange); background: #fef9e7; }
+  .card-title { font-weight: 700; font-size: 16px; margin-bottom: 8px; display: flex; align-items: center; gap: 8px; }
+  .card-title .icon { font-size: 20px; }
+
+  /* STEP FLOW */
+  .steps { display: flex; flex-direction: column; gap: 0; margin: 20px 0; }
+  .step { display: flex; gap: 16px; position: relative; padding-bottom: 20px; }
+  .step:last-child { padding-bottom: 0; }
+  .step::before { content: ''; position: absolute; left: 19px; top: 40px; bottom: 0; width: 2px; background: var(--light-blue); }
+  .step:last-child::before { display: none; }
+  .step-num { width: 40px; height: 40px; border-radius: 50%; background: var(--mid); color: #fff; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 16px; flex-shrink: 0; z-index: 1; }
+  .step-content { flex: 1; padding-top: 6px; }
+  .step-content strong { color: var(--accent); }
+
+  /* CODE BLOCKS */
+  .code-block { background: #1e293b; color: #e2e8f0; border-radius: 8px; padding: 20px; font-family: 'Fira Code', 'Cascadia Code', 'Consolas', monospace; font-size: 14px; line-height: 1.8; overflow-x: auto; margin: 12px 0; }
+  .code-block .correct { color: #4ade80; }
+  .code-block .wrong { color: #f87171; }
+  .code-block .highlight { color: #facc15; }
+  .code-block .dim { color: #64748b; }
+  .code-block .info { color: #38bdf8; }
+
+  /* INTERACTIVE DEMO */
+  .demo-area { background: #fff; border: 2px solid var(--light-blue); border-radius: 12px; padding: 24px; margin: 16px 0; }
+  .demo-label { font-size: 12px; text-transform: uppercase; font-weight: 700; color: var(--grey); letter-spacing: 1px; margin-bottom: 8px; }
+  .khmer-large { font-size: 48px; text-align: center; padding: 16px; line-height: 1.5; }
+  .khmer-mid { font-size: 32px; line-height: 1.5; }
+
+  /* CHAR BLOCKS */
+  .char-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: stretch; margin: 10px 0; }
+  .char-box { display: flex; flex-direction: column; align-items: center; border-radius: 8px; padding: 8px 12px; min-width: 70px; font-size: 13px; border: 2px solid #ddd; background: #fff; transition: .25s; }
+  .char-box .glyph { font-size: 28px; line-height: 1.3; }
+  .char-box .label { font-size: 10px; color: var(--grey); text-transform: uppercase; margin-top: 2px; }
+  .char-box .code { font-family: monospace; font-size: 11px; color: var(--accent); font-weight: 600; }
+  .char-box.base { border-color: var(--mid); background: #eaf2f8; }
+  .char-box.sub { border-color: #8e44ad; background: #f5eef8; }
+  .char-box.vowel { border-color: var(--ok); background: #eafaf1; }
+  .char-box.shifter { border-color: var(--orange); background: #fef9e7; }
+  .char-box.sign { border-color: #e74c3c; background: #fdedec; }
+  .char-box.result { border-color: var(--dark); background: var(--light-blue); min-width: 100px; }
+  .arrow { font-size: 24px; color: var(--grey); display: flex; align-items: center; padding: 0 4px; }
+
+  /* COMPARISON TABLE */
+  table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 14px; }
+  th { background: var(--blue); color: #fff; padding: 10px 14px; text-align: left; font-weight: 600; }
+  td { padding: 10px 14px; border-bottom: 1px solid #eee; }
+  tr:nth-child(even) td { background: #f8f9fa; }
+  .badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600; }
+  .badge.yes { background: #d5f5e3; color: #1e8449; }
+  .badge.no { background: #fadbd8; color: #c0392b; }
+  .badge.partial { background: #fdebd0; color: #b7950b; }
+
+  /* INTERACTIVE TYPING DEMO */
+  .typing-demo { background: #fff; border-radius: 12px; padding: 24px; border: 2px solid var(--light-blue); margin: 16px 0; }
+  .typing-input { display: flex; flex-wrap: wrap; gap: 8px; margin: 12px 0; }
+  .type-btn { padding: 10px 16px; border: 2px solid #ddd; border-radius: 8px; background: #fff; cursor: pointer; font-size: 14px; transition: .2s; display: flex; flex-direction: column; align-items: center; min-width: 80px; }
+  .type-btn:hover { border-color: var(--mid); background: var(--light-blue); transform: translateY(-2px); }
+  .type-btn .k { font-size: 24px; }
+  .type-btn .desc { font-size: 10px; color: var(--grey); }
+  .output-display { background: #1e293b; color: #e2e8f0; border-radius: 8px; padding: 16px; font-family: monospace; font-size: 14px; min-height: 60px; margin: 12px 0; }
+  .output-display .render { font-size: 40px; color: #fff; font-family: serif; }
+  .demo-btn { padding: 8px 20px; border-radius: 6px; border: none; cursor: pointer; font-size: 14px; font-weight: 600; transition: .2s; }
+  .demo-btn.primary { background: var(--mid); color: #fff; }
+  .demo-btn.primary:hover { background: var(--blue); }
+  .demo-btn.danger { background: var(--warn); color: #fff; }
+  .demo-btn.danger:hover { background: #c0392b; }
+
+  /* FLOW DIAGRAM */
+  .flow { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; justify-content: center; margin: 20px 0; }
+  .flow-box { padding: 10px 18px; border-radius: 8px; font-weight: 600; font-size: 14px; text-align: center; }
+  .flow-box.b { background: #eaf2f8; border: 2px solid var(--mid); color: var(--blue); }
+  .flow-box.s { background: #f5eef8; border: 2px solid #8e44ad; color: #6c3483; }
+  .flow-box.c { background: #fef9e7; border: 2px solid var(--orange); color: #b7950b; }
+  .flow-box.v { background: #eafaf1; border: 2px solid var(--ok); color: #1e8449; }
+  .flow-box.o { background: #fdedec; border: 2px solid #e74c3c; color: #c0392b; }
+  .flow-arrow { font-size: 22px; color: var(--grey); }
+
+  /* PROGRESS / STATS */
+  .stat-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 16px; margin: 16px 0; }
+  .stat-card { background: #fff; border-radius: 10px; padding: 20px; text-align: center; border: 1px solid #eee; box-shadow: 0 1px 4px rgba(0,0,0,.04); }
+  .stat-num { font-size: 32px; font-weight: 800; color: var(--mid); }
+  .stat-label { font-size: 13px; color: var(--grey); margin-top: 4px; }
+
+  /* BAR CHART */
+  .bar-chart { margin: 16px 0; }
+  .bar-row { display: flex; align-items: center; gap: 12px; margin-bottom: 10px; }
+  .bar-label { width: 140px; font-size: 13px; text-align: right; flex-shrink: 0; }
+  .bar-track { flex: 1; background: #ecf0f1; border-radius: 6px; height: 28px; overflow: hidden; position: relative; }
+  .bar-fill { height: 100%; border-radius: 6px; display: flex; align-items: center; padding-left: 10px; font-size: 12px; font-weight: 600; color: #fff; transition: width 1s ease; }
+  .bar-fill.correct { background: linear-gradient(90deg, var(--ok), #2ecc71); }
+  .bar-fill.wrong1 { background: linear-gradient(90deg, var(--orange), #e67e22); }
+  .bar-fill.wrong2 { background: linear-gradient(90deg, var(--warn), #e74c3c); }
+  .bar-fill.wrong3 { background: linear-gradient(90deg, #8e44ad, #9b59b6); }
+
+  /* TABS */
+  .tabs { display: flex; gap: 4px; margin-bottom: 0; }
+  .tab { padding: 10px 20px; border: 1px solid #ddd; border-bottom: none; border-radius: 8px 8px 0 0; cursor: pointer; font-size: 14px; font-weight: 600; background: #f4f4f4; color: var(--grey); transition: .2s; }
+  .tab.active { background: #fff; color: var(--blue); border-bottom: 2px solid #fff; position: relative; z-index: 2; }
+  .tab-content { border: 1px solid #ddd; border-radius: 0 8px 8px 8px; padding: 24px; background: #fff; margin-top: -1px; display: none; }
+  .tab-content.active { display: block; }
+
+  /* RESPONSIVE */
+  @media (max-width: 640px) {
+    .nav-inner { padding: 8px 12px; }
+    .nav a { font-size: 11px; padding: 3px 6px; }
+    .container { padding: 70px 12px 40px; }
+    h2 { font-size: 22px; }
+    .char-box { min-width: 55px; padding: 6px 8px; }
+    .char-box .glyph { font-size: 22px; }
+    .flow { gap: 4px; }
+    .flow-box { padding: 6px 10px; font-size: 12px; }
+    .stat-grid { grid-template-columns: 1fr 1fr; }
+  }
+
+  .fade-in { opacity: 0; transform: translateY(20px); transition: opacity .6s, transform .6s; }
+  .fade-in.visible { opacity: 1; transform: translateY(0); }
+</style>
+</head>
+<body>
+
+<!-- NAVIGATION -->
+<nav class="nav">
+  <div class="nav-inner">
+    <span class="nav-title">Khmer Unicode Demo</span>
+    <a href="#overview">Overview</a>
+    <a href="#context">Context</a>
+    <a href="#how-it-works">How It Works</a>
+    <a href="#issues">Issues</a>
+    <a href="#standards">Standards</a>
+    <a href="#solutions">Solutions</a>
+    <a href="#proposal">Proposal</a>
+    <a href="#keyboard-demo">Keyboard Demo</a>
+  </div>
+</nav>
+
+<div class="container">
+
+<!-- HERO -->
+<div class="hero" id="overview">
+  <h1>Discrepancies in Khmer Unicode Character Ordering Rules</h1>
+  <p class="sub">An interactive guide to understanding the encoding challenges, cross-platform issues, and a proposed unified solution for Khmer script.</p>
+  <p class="author">By Macarasso — SIL International / National Polytechnic Institute of Cambodia</p>
+</div>
+
+<!-- STATS -->
+<section class="fade-in">
+  <div class="stat-grid">
+    <div class="stat-card">
+      <div class="stat-num">18M+</div>
+      <div class="stat-label">Khmer speakers worldwide</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">9</div>
+      <div class="stat-label">Languages use Khmer script</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">13+</div>
+      <div class="stat-label">Ways to encode one word</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-num">~40%</div>
+      <div class="stat-label">Online text incorrectly encoded</div>
+    </div>
+  </div>
+</section>
+
+<!-- CONTEXT -->
+<section id="context" class="fade-in">
+  <h2>1. Context: What is Khmer Script?</h2>
+
+  <div class="card highlight">
+    <div class="card-title"><span class="icon">&#x1F30F;</span> Geographic & Linguistic Scope</div>
+    <p>Khmer script is the primary writing system for Cambodia, used by <strong>Central Khmer</strong> speakers and six ethnic minority languages (Bunong, Tampuan, Brao, Krung, Jarai, Kuay). Two classical languages — <strong>Pali</strong> and <strong>Sanskrit</strong> — also use Khmer script for Buddhist texts.</p>
+  </div>
+
+  <div class="card highlight">
+    <div class="card-title"><span class="icon">&#x1F4DD;</span> Writing System Type: Abugida</div>
+    <p>Khmer is an <strong>Abugida</strong> — a writing system where each consonant carries an inherent vowel sound. Vowels are modified by adding signs around the consonant (above, below, before, or after).</p>
+    <p>Think of it this way: in English, "K" is just the sound /k/. In Khmer, the consonant &#x1780; (Ka) already means /k&#x0254;&#x02D0;/ — it has a vowel built in. You change the vowel by adding marks.</p>
+    <p><strong>Direction:</strong> left to right, top to bottom. <strong>Origin:</strong> descended from Indian Brahmi script (5th-6th century CE).</p>
+  </div>
+
+  <h3>Character Inventory Comparison</h3>
+  <table>
+    <tr><th>Character Type</th><th>Unicode Standard</th><th>Khmer Grammar Books</th></tr>
+    <tr><td><strong>Consonants</strong></td><td>33 (+2 obsolete)</td><td>33 (+2) & 32 subscripts</td></tr>
+    <tr><td><strong>Dependent Vowels</strong></td><td>16 (pure only)</td><td>25 (includes combinations)</td></tr>
+    <tr><td><strong>Independent Vowels</strong></td><td>15 (+2 obsolete)</td><td>15</td></tr>
+    <tr><td><strong>Diacritics / Signs</strong></td><td>11 (+2) + U+17D2</td><td>9*</td></tr>
+  </table>
+  <div class="card note">
+    <div class="card-title"><span class="icon">&#x26A0;</span> Key Character: U+17D2 (Coeng)</div>
+    <p>The <strong>Coeng marker</strong> (U+17D2) is the most important functional character. It is not visible on its own — instead, it transforms the <em>next</em> consonant into a <strong>subscript</strong> (a small form rendered below or beside the base consonant). Grammar books list 32 subscripts, but Unicode generates them dynamically using U+17D2 + consonant.</p>
+  </div>
+</section>
+
+<!-- HOW IT WORKS -->
+<section id="how-it-works" class="fade-in">
+  <h2>2. How Khmer Encoding Works (Step by Step)</h2>
+
+  <p>Understanding the building blocks is essential to seeing where things go wrong. Let's build a Khmer word character by character.</p>
+
+  <h3>Building Block: The Syllable Cluster</h3>
+  <p>Every Khmer syllable follows a structure. Here are the key parts:</p>
+
+  <div class="flow">
+    <div class="flow-box b">B<br><small>Base</small></div>
+    <div class="flow-arrow">&#x2192;</div>
+    <div class="flow-box s">S<br><small>Subscript</small></div>
+    <div class="flow-arrow">&#x2192;</div>
+    <div class="flow-box c">C<br><small>Shifter</small></div>
+    <div class="flow-arrow">&#x2192;</div>
+    <div class="flow-box v">V<br><small>Vowel</small></div>
+    <div class="flow-arrow">&#x2192;</div>
+    <div class="flow-box o">O<br><small>Sign</small></div>
+  </div>
+
+  <div class="card highlight">
+    <div class="card-title"><span class="icon">&#x1F3AF;</span> Color Legend (used throughout this page)</div>
+    <div class="char-row">
+      <div class="char-box base"><span class="label">Base Consonant</span></div>
+      <div class="char-box sub"><span class="label">Subscript</span></div>
+      <div class="char-box shifter"><span class="label">Consonant Shifter</span></div>
+      <div class="char-box vowel"><span class="label">Dependent Vowel</span></div>
+      <div class="char-box sign"><span class="label">Sign / Other</span></div>
+    </div>
+  </div>
+
+  <h3>Example 1: Simple Syllable — &#x1780;&#x17B6; (Kaa)</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <strong>Type the base consonant</strong>
+        <div class="char-row">
+          <div class="char-box base"><span class="glyph">&#x1780;</span><span class="code">U+1780</span><span class="label">Ka</span></div>
+        </div>
+        <p>This alone is pronounced /k&#x0254;&#x02D0;/ — the consonant already has a built-in vowel.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <strong>Add a dependent vowel to change the sound</strong>
+        <div class="char-row">
+          <div class="char-box base"><span class="glyph">&#x1780;</span><span class="code">U+1780</span><span class="label">Ka</span></div>
+          <div class="arrow">+</div>
+          <div class="char-box vowel"><span class="glyph">&#x17B6;</span><span class="code">U+17B6</span><span class="label">aa vowel</span></div>
+          <div class="arrow">&#x2192;</div>
+          <div class="char-box result"><span class="glyph">&#x1780;&#x17B6;</span><span class="label">Kaa</span></div>
+        </div>
+        <p>Now it's pronounced /k&#x0061;&#x02D0;/ — the vowel sign replaces the inherent vowel.</p>
+      </div>
+    </div>
+  </div>
+
+  <h3>Example 2: Consonant Cluster — &#x179F;&#x17D2;&#x178F;&#x17D2;&#x179A;&#x17B8; (strii, "woman")</h3>
+  <p>This is the key example from the presentation. Let's build it step by step:</p>
+
+  <div class="steps">
+    <div class="step">
+      <div class="step-num">1</div>
+      <div class="step-content">
+        <strong>Base consonant: &#x179F; (So)</strong>
+        <div class="char-row">
+          <div class="char-box base"><span class="glyph">&#x179F;</span><span class="code">U+179F</span><span class="label">So (base)</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">2</div>
+      <div class="step-content">
+        <strong>1st subscript: Coeng + &#x178F; (Ta) — appears BELOW the base</strong>
+        <div class="char-row">
+          <div class="char-box base"><span class="glyph">&#x179F;</span><span class="code">U+179F</span></div>
+          <div class="arrow">+</div>
+          <div class="char-box sub"><span class="glyph">&#x17D2;</span><span class="code">U+17D2</span><span class="label">Coeng</span></div>
+          <div class="arrow">+</div>
+          <div class="char-box sub"><span class="glyph">&#x178F;</span><span class="code">U+178F</span><span class="label">Ta</span></div>
+          <div class="arrow">&#x2192;</div>
+          <div class="char-box result"><span class="glyph">&#x179F;&#x17D2;&#x178F;</span><span class="label">S + sub-T</span></div>
+        </div>
+        <p>U+17D2 (Coeng) tells the system: "make the next consonant a subscript." So &#x178F; becomes a small form below &#x179F;.</p>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">3</div>
+      <div class="step-content">
+        <strong>2nd subscript: Coeng + &#x179A; (Ro) — appears BESIDE the base</strong>
+        <div class="char-row">
+          <div class="char-box base"><span class="glyph">&#x179F;&#x17D2;&#x178F;</span></div>
+          <div class="arrow">+</div>
+          <div class="char-box sub"><span class="glyph">&#x17D2;</span><span class="code">U+17D2</span><span class="label">Coeng</span></div>
+          <div class="arrow">+</div>
+          <div class="char-box sub"><span class="glyph">&#x179A;</span><span class="code">U+179A</span><span class="label">Ro</span></div>
+          <div class="arrow">&#x2192;</div>
+          <div class="char-box result"><span class="glyph">&#x179F;&#x17D2;&#x178F;&#x17D2;&#x179A;</span><span class="label">S + sub-T + sub-R</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="step">
+      <div class="step-num">4</div>
+      <div class="step-content">
+        <strong>Dependent vowel: &#x17B8; (ii) — appears ABOVE the base</strong>
+        <div class="char-row">
+          <div class="char-box base"><span class="glyph">&#x179F;&#x17D2;&#x178F;&#x17D2;&#x179A;</span></div>
+          <div class="arrow">+</div>
+          <div class="char-box vowel"><span class="glyph">&#x17B8;</span><span class="code">U+17B8</span><span class="label">ii vowel</span></div>
+          <div class="arrow">&#x2192;</div>
+          <div class="char-box result"><span class="glyph" style="font-size:36px">&#x179F;&#x17D2;&#x178F;&#x17D2;&#x179A;&#x17B8;</span><span class="label">strii ("woman")</span></div>
+        </div>
+        <p>Even though the vowel appears visually <em>above</em> the base, it is always typed <em>after</em> everything else in the logical encoding order.</p>
+      </div>
+    </div>
+  </div>
+
+  <div class="card note">
+    <div class="card-title"><span class="icon">&#x1F4A1;</span> Key Insight</div>
+    <p><strong>Visual position &#x2260; typing order.</strong> The vowel sign may appear to the left, right, above, or below the base consonant on screen — but in Unicode, it is always encoded AFTER the base and subscripts. This disconnect between what users <em>see</em> and what they should <em>type</em> is the root cause of most encoding errors.</p>
+  </div>
+
+  <h3>Example 3: The Consonant Shifter (the tricky one)</h3>
+  <p>The <strong>consonant shifter</strong> (U+17CA "Triisap" or U+17C9 "Muusikatoan") changes the register/series of a consonant. Here's the confusing part:</p>
+
+  <div class="card warn">
+    <div class="card-title"><span class="icon">&#x26A0;</span> The Visual Trick</div>
+    <p>When U+17CA (consonant shifter) is followed by certain above-vowels, it <strong>changes its visual form</strong> to look like U+17BB (the below-vowel "O"). They are completely different characters, but <em>look identical on screen</em>.</p>
+    <div class="code-block">
+<span class="info">Encoding:</span>  &#x179F; + <span class="highlight">U+17CA</span> (consonant shifter) + U+17B8 (vowel)
+<span class="info">On screen:</span>  &#x179F; + <span class="highlight">shape that looks like U+17BB</span> + above mark
+
+<span class="wrong">What users think they see:</span>  base + vowel-O + vowel-A
+<span class="correct">What is actually encoded:</span>   base + consonant shifter + vowel-ii
+
+<span class="dim">This visual trick causes users to type the WRONG characters</span>
+<span class="dim">because they type what they SEE, not what is LOGICALLY required.</span>
+    </div>
+  </div>
+</section>
+
+<!-- ISSUES -->
+<section id="issues" class="fade-in">
+  <h2>3. The Four Issues</h2>
+
+  <!-- TABS for issues -->
+  <div class="tabs">
+    <div class="tab active" onclick="showTab(event, 'issue1')">Issue 1</div>
+    <div class="tab" onclick="showTab(event, 'issue2')">Issue 2</div>
+    <div class="tab" onclick="showTab(event, 'issue3')">Issue 3</div>
+    <div class="tab" onclick="showTab(event, 'issue4')">Issue 4</div>
+  </div>
+
+  <!-- ISSUE 1 -->
+  <div class="tab-content active" id="issue1">
+    <h3>Issue 1: Identical Renderings from Different Character Sequences</h3>
+    <p>Different character orderings produce <strong>visually identical</strong> text. Users cannot detect the difference.</p>
+
+    <div class="code-block">
+<span class="correct">&#x2713; CORRECT ORDER:</span>
+  &#x179F; + <span class="highlight">U+17D2 + &#x178F;</span> + <span class="highlight">U+17D2 + &#x179A;</span> + &#x17B8;
+  (base)  (1st subscript-Ta)  (2nd subscript-Ro)  (vowel)
+  Google Hits: <span class="correct">5,580,000</span>
+
+<span class="wrong">&#x2717; WRONG ORDER A (subscripts swapped):</span>
+  &#x179F; + <span class="wrong">U+17D2 + &#x179A;</span> + <span class="wrong">U+17D2 + &#x178F;</span> + &#x17B8;
+  (base)  (Ro FIRST)           (Ta SECOND)         (vowel)
+  Google Hits: <span class="wrong">2,110,000</span>  &#x2190; 27% of all occurrences!
+
+<span class="wrong">&#x2717; WRONG ORDER B (vowel between subscripts):</span>
+  &#x179F; + U+17D2 + &#x178F; + <span class="wrong">&#x17B8;</span> + <span class="wrong">U+17D2 + &#x179A;</span>
+  (base)  (sub-Ta)      (vowel misplaced) (sub-Ro)
+  Google Hits: <span class="wrong">23,500</span>
+
+<span class="dim">All three render IDENTICALLY on screen. Users cannot tell them apart.</span>
+    </div>
+
+    <h3>How big is this problem?</h3>
+    <div class="bar-chart">
+      <div class="bar-row">
+        <div class="bar-label">Correct (5.58M)</div>
+        <div class="bar-track"><div class="bar-fill correct" style="width:72%">72%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Wrong A (2.11M)</div>
+        <div class="bar-track"><div class="bar-fill wrong1" style="width:27%">27%</div></div>
+      </div>
+      <div class="bar-row">
+        <div class="bar-label">Wrong B (23.5K)</div>
+        <div class="bar-track"><div class="bar-fill wrong2" style="width:1%">&lt;1%</div></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ISSUE 2 -->
+  <div class="tab-content" id="issue2">
+    <h3>Issue 2: Visually Identical Subscripts</h3>
+    <p>Two different subscript consonants render with the <strong>exact same glyph</strong>:</p>
+    <div class="char-row" style="justify-content:center; margin:20px 0;">
+      <div class="char-box sub"><span class="glyph">&#x17D2;&#x178A;</span><span class="code">U+17D2 U+178A</span><span class="label">subscript-Da</span></div>
+      <div class="arrow" style="font-size:32px">&#x2248;</div>
+      <div class="char-box sub"><span class="glyph">&#x17D2;&#x178F;</span><span class="code">U+17D2 U+178F</span><span class="label">subscript-Ta</span></div>
+    </div>
+    <p>Because these look the same, users may type the wrong consonant entirely — not just in the wrong order. This multiplies the number of encoding variants.</p>
+    <table>
+      <tr><th>Variant</th><th>Subscript Used</th><th>Google Hits</th></tr>
+      <tr><td><strong>Correct</strong> (U+17D2 + U+178F)</td><td>subscript-Ta &#x2713;</td><td style="color:#27ae60; font-weight:700;">5,580,000</td></tr>
+      <tr><td>Wrong subscript, correct order</td><td>subscript-Da &#x2717;</td><td style="color:#e74c3c;">441,000</td></tr>
+      <tr><td>Wrong subscript, wrong order</td><td>subscript-Da &#x2717;</td><td style="color:#e74c3c;">557,000</td></tr>
+      <tr><td>Wrong subscript, vowel misplaced</td><td>subscript-Da &#x2717;</td><td style="color:#e74c3c;">2,950</td></tr>
+    </table>
+  </div>
+
+  <!-- ISSUE 3 -->
+  <div class="tab-content" id="issue3">
+    <h3>Issue 3: Anarchy in Typing — 13 Ways to Encode One Word</h3>
+    <p>The word meaning "to detect" (/s&#x0254;&#x0254;p/) was found to have <strong>at least 13 different encodings</strong>, all rendering identically on Chrome 58 (Android 6.0.1).</p>
+
+    <div class="code-block">
+<span class="correct">CORRECT: 9F CA BE 94</span>  (base + shifter + vowel + final consonant)
+
+<span class="dim">All 13 variants (hex shorthand of last 2 digits):</span>
+<span class="correct"> 1. 9F CA BE 94</span>  &#x2713;     <span class="wrong"> 6. 9F BB BE 94</span>
+<span class="wrong"> 2. 9F CA C1 B8 94</span>     <span class="wrong"> 7. 9F BB B8 C1 94</span>
+<span class="wrong"> 3. 9F CA B8 C1 94</span>     <span class="wrong"> 8. 9F B8 BB C1 94</span>
+<span class="wrong"> 4. 9F BB C1 B8 94</span>     <span class="wrong"> 9. 9F B8 C1 BB 94</span>
+<span class="wrong"> 5. 9F BE BB 94</span>        <span class="wrong">10. 9F C1 B8 BB 94</span>
+<span class="wrong">11. 9F C9 C1 B8 94</span>    <span class="wrong">12. 9F C9 B8 C1 94</span>
+<span class="wrong">13. 9F C1 BB B8 94</span>
+
+<span class="dim">Some have been fixed in newer browsers (show dotted circle),</span>
+<span class="dim">but the incorrect data persists in texts and search indexes.</span>
+    </div>
+
+    <div class="card note">
+      <div class="card-title"><span class="icon">&#x1F4A1;</span> Why does this happen?</div>
+      <p>Users type what they <strong>see</strong>, not what is <strong>logically correct</strong>. When the consonant shifter visually transforms to look like a vowel, users type two vowels instead of a shifter + vowel. And since the rendering engine displays them all correctly, there's no error feedback.</p>
+    </div>
+  </div>
+
+  <!-- ISSUE 4 -->
+  <div class="tab-content" id="issue4">
+    <h3>Issue 4: Security Risk — Spoofing Vulnerability</h3>
+    <p>If Khmer script were used in <strong>Internationalized Domain Names (IDNs)</strong>, the ability to create visually identical text with different encodings would enable <strong>domain spoofing attacks</strong>.</p>
+    <div class="card warn">
+      <div class="card-title"><span class="icon">&#x1F6A8;</span> Attack Scenario</div>
+      <div class="code-block">
+<span class="correct">Legitimate domain:</span>  example.&#x1780;&#x17B6;  (correct encoding)
+<span class="wrong">Spoofed domain:</span>     example.&#x1780;&#x17B6;  (different encoding, looks identical)
+
+<span class="dim">A user clicks the spoofed link thinking it's the real site.</span>
+<span class="dim">The browser shows the same visual domain name.</span>
+<span class="dim">The user has NO WAY to detect the difference.</span>
+      </div>
+      <p>This is similar to homograph attacks using mixed scripts (e.g., Cyrillic "a" vs Latin "a"), but potentially more severe because it uses the <em>same script</em> with different encoding orders.</p>
+    </div>
+  </div>
+</section>
+
+<!-- STANDARDS COMPARISON -->
+<section id="standards" class="fade-in">
+  <h2>4. The Three Standards (and Where They Disagree)</h2>
+  <p>Three organizations define how Khmer characters should be ordered. They agree on most things — but disagree on critical details.</p>
+
+  <table>
+    <tr><th>Point</th><th>Unicode Standard</th><th>Microsoft OpenType</th><th>Open Forum</th></tr>
+    <tr>
+      <td><strong>What can be a base?</strong></td>
+      <td>Consonant <em>or</em> independent vowel</td>
+      <td>Consonant only</td>
+      <td>Consonant <em>or</em> independent vowel</td>
+    </tr>
+    <tr>
+      <td><strong>Consonant shifter position</strong></td>
+      <td><span class="badge no">Before subscript</span></td>
+      <td><span class="badge yes">After subscript</span></td>
+      <td><span class="badge yes">After subscript</span></td>
+    </tr>
+    <tr>
+      <td><strong>Vowel before base?</strong></td>
+      <td><span class="badge yes">No (correct)</span></td>
+      <td><span class="badge no">Yes (pre-vowels)</span></td>
+      <td><span class="badge yes">No (correct)</span></td>
+    </tr>
+    <tr>
+      <td><strong>Robat mentioned?</strong></td>
+      <td><span class="badge yes">Yes</span></td>
+      <td><span class="badge no">No</span></td>
+      <td><span class="badge partial">Partial</span></td>
+    </tr>
+    <tr>
+      <td><strong>ZWJ mentioned?</strong></td>
+      <td><span class="badge yes">Yes</span></td>
+      <td><span class="badge no">No</span></td>
+      <td><span class="badge no">No</span></td>
+    </tr>
+  </table>
+
+  <h3>The Formal Rules Side by Side</h3>
+  <div class="code-block">
+<span class="info">Unicode (2019:645):</span>   B {R | C} {S {R}}* {{Z} V} {O} {S}
+<span class="info">OpenType (2018):</span>      Cons {S}* V C V O V O
+<span class="info">Open Forum (2004):</span>    B R {V} {O}  /  B {S}* C V {O}*
+
+<span class="dim">Where:</span>
+  B = base    R = Robat    C = consonant shifter
+  S = subscript    V = vowel    Z = ZWJ/ZWNJ    O = other sign
+  {} = 0-2    [] = 0-1    * = 0+    | = or
+  </div>
+
+  <div class="card warn">
+    <div class="card-title"><span class="icon">&#x26A0;</span> The Biggest Conflict: Consonant Shifter Position</div>
+    <p><strong>Unicode</strong> says: Base &#x2192; Shifter &#x2192; Subscript &#x2192; Vowel</p>
+    <p><strong>OpenType + Open Forum</strong> say: Base &#x2192; Subscript &#x2192; Shifter &#x2192; Vowel</p>
+    <p>Unicode is the <strong>outlier</strong> — both other standards agree on placing the consonant shifter <em>after</em> subscripts.</p>
+  </div>
+
+  <h3>Cross-Platform Compatibility</h3>
+  <p>The same word renders differently depending on the device:</p>
+  <table>
+    <tr><th>Encoding (hex)</th><th>iOS 10</th><th>Ubuntu 16</th><th>Windows 10</th><th>Android 9</th></tr>
+    <tr><td>9F, CA, B8 <span class="badge yes">correct</span></td><td>&#x2713;</td><td>&#x2713;</td><td>&#x2713;</td><td>&#x2713;</td></tr>
+    <tr><td>9F, B8, BB <span class="badge no">wrong</span></td><td><strong style="color:#e74c3c">&#x2717;</strong></td><td>&#x2713;</td><td>&#x2713;</td><td>&#x2713;</td></tr>
+    <tr><td>9F, BB, B8 <span class="badge no">wrong</span></td><td>&#x2713;</td><td>&#x2713;</td><td>&#x2713;</td><td>&#x2713;</td></tr>
+    <tr><td>9F, C9, B8 <span class="badge no">wrong</span></td><td>&#x2713;</td><td>&#x2713;</td><td>&#x2713;</td><td>&#x2713;</td></tr>
+  </table>
+  <p>A message typed on <strong>Android</strong> using an incorrect sequence may display as <strong>garbled text on iOS</strong>.</p>
+
+  <h3>Searchability Impact</h3>
+  <p>Google treats each encoding as a different string, fragmenting search results:</p>
+  <div class="bar-chart">
+    <div class="bar-row">
+      <div class="bar-label" style="width:200px">Correct (~5.85M)</div>
+      <div class="bar-track"><div class="bar-fill correct" style="width:56%">56%</div></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label" style="width:200px">Intuitive wrong (~3.85M)</div>
+      <div class="bar-track"><div class="bar-fill wrong1" style="width:37%">37%</div></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label" style="width:200px">Variant 2 (~579K)</div>
+      <div class="bar-track"><div class="bar-fill wrong2" style="width:5%">5%</div></div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label" style="width:200px">Variant 3 (~206K)</div>
+      <div class="bar-track"><div class="bar-fill wrong3" style="width:2%">2%</div></div>
+    </div>
+  </div>
+  <div class="card note">
+    <div class="card-title"><span class="icon">&#x1F4A1;</span> Why is the "intuitive wrong" at 37%?</div>
+    <p>Because users type what they see. The consonant shifter looks like a vowel on screen, so users type: base + vowel-O + vowel-A (what they see) instead of: base + consonant shifter + vowel-ii (what is logically correct). This is the single most common encoding error in Khmer text.</p>
+  </div>
+</section>
+
+<!-- SOLUTIONS -->
+<section id="solutions" class="fade-in">
+  <h2>5. Proposed Solutions</h2>
+  <p>Three complementary approaches to solve the problem:</p>
+
+  <div class="card ok" style="margin-bottom:16px">
+    <div class="card-title"><span class="icon">&#x1F6E1;</span> Solution A: Rendering Engine Enforcement</div>
+    <p><strong>What:</strong> Rendering engines should display a <strong>dotted circle</strong> (&#x25CC;) when they encounter an illegal character sequence, instead of rendering it normally.</p>
+    <p><strong>Why it helps:</strong> Users get immediate visual feedback that their input is wrong, prompting them to correct it.</p>
+    <div class="code-block">
+<span class="correct">Correct input:    &#x179F; + U+17CA + U+17B8  &#x2192;  renders normally &#x2713;</span>
+<span class="wrong">Incorrect input:  &#x179F; + U+17BB + U+17B8  &#x2192;  &#x179F;&#x25CC;&#x17BB;&#x25CC;&#x17B8;  (dotted circles shown)</span>
+
+<span class="dim">The dotted circle tells the user: "Something is wrong here."</span>
+    </div>
+  </div>
+
+  <div class="card ok" style="margin-bottom:16px">
+    <div class="card-title"><span class="icon">&#x2328;</span> Solution B: Smart Keyboard Correction</div>
+    <p><strong>What:</strong> The keyboard automatically reorders or converts characters as the user types. Users type naturally, and the keyboard ensures correct encoding output.</p>
+    <p><strong>Why it helps:</strong> Zero learning curve for users — they type as they always have, but the data is always correctly encoded.</p>
+    <p><strong>Implementation:</strong> The Khmer Angkor Keyboard (powered by Keyman, SIL International) already implements this. See the interactive demo below.</p>
+  </div>
+
+  <div class="card ok">
+    <div class="card-title"><span class="icon">&#x1F91D;</span> Solution C: Unify the Standards</div>
+    <p><strong>What:</strong> Unicode Standard, OpenType, and Open Forum should adopt a single, unified character ordering rule.</p>
+    <p><strong>Why it helps:</strong> Eliminates ambiguity for developers. All platforms would implement the same rules, ensuring consistent behavior across devices.</p>
+  </div>
+</section>
+
+<!-- PROPOSAL -->
+<section id="proposal" class="fade-in">
+  <h2>6. The New Proposed Rule</h2>
+
+  <div class="card" style="background: linear-gradient(135deg, #1a5276 0%, #2e86c1 100%); color: #fff; text-align: center; padding: 36px;">
+    <div style="font-size: 14px; text-transform: uppercase; letter-spacing: 2px; opacity: .7; margin-bottom: 12px;">Proposed Unified Character Sequence</div>
+    <div style="font-family: 'Courier New', monospace; font-size: clamp(20px, 4vw, 32px); font-weight: 700; margin-bottom: 16px; letter-spacing: 1px;">
+      B ({S} | [R]) [C] [Z] [V] [O | S]
+    </div>
+    <div style="font-size: 14px; opacity: .6; margin-bottom: 4px;">Current Unicode Standard:</div>
+    <div style="font-family: 'Courier New', monospace; font-size: 16px; opacity: .5; text-decoration: line-through;">
+      B {R | C} {S {R}}* {{Z} V} {O} {S}
+    </div>
+  </div>
+
+  <h3>Visual Comparison: What Changed?</h3>
+  <p style="margin-bottom: 16px;">The key change is the position of the <strong>Consonant Shifter (C)</strong>:</p>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title" style="color:#e74c3c"><span class="icon">&#x274C;</span> Current Unicode: Shifter BEFORE Subscript</div>
+    <div class="flow">
+      <div class="flow-box b">Base</div>
+      <div class="flow-arrow">&#x2192;</div>
+      <div class="flow-box c" style="border-width:3px">Shifter &#x2190; here</div>
+      <div class="flow-arrow">&#x2192;</div>
+      <div class="flow-box s">Subscript</div>
+      <div class="flow-arrow">&#x2192;</div>
+      <div class="flow-box v">Vowel</div>
+      <div class="flow-arrow">&#x2192;</div>
+      <div class="flow-box o">Sign</div>
+    </div>
+  </div>
+
+  <div class="card" style="margin-bottom:16px">
+    <div class="card-title" style="color:#27ae60"><span class="icon">&#x2705;</span> Proposed: Shifter AFTER Subscript (aligns with OpenType + Open Forum)</div>
+    <div class="flow">
+      <div class="flow-box b">Base</div>
+      <div class="flow-arrow">&#x2192;</div>
+      <div class="flow-box s">Subscript</div>
+      <div class="flow-arrow">&#x2192;</div>
+      <div class="flow-box c" style="border-width:3px">Shifter &#x2190; moved here</div>
+      <div class="flow-arrow">&#x2192;</div>
+      <div class="flow-box v">Vowel</div>
+      <div class="flow-arrow">&#x2192;</div>
+      <div class="flow-box o">Sign</div>
+    </div>
+  </div>
+
+  <h3>Why This Change?</h3>
+  <div class="steps">
+    <div class="step">
+      <div class="step-num" style="background:#27ae60">1</div>
+      <div class="step-content"><strong>Majority alignment:</strong> OpenType and Open Forum already use this order. Unicode is the sole outlier. 2 out of 3 standards already agree.</div>
+    </div>
+    <div class="step">
+      <div class="step-num" style="background:#27ae60">2</div>
+      <div class="step-content"><strong>Simpler sorting:</strong> Subscripts directly modify the base consonant, so they should be adjacent for natural sort order: Base &#x2192; Subscript &#x2192; everything else.</div>
+    </div>
+    <div class="step">
+      <div class="step-num" style="background:#27ae60">3</div>
+      <div class="step-content"><strong>Easier for developers:</strong> The proposed rule has a flatter structure with fewer nested groups — fewer edge cases to handle in code.</div>
+    </div>
+    <div class="step">
+      <div class="step-num" style="background:#27ae60">4</div>
+      <div class="step-content"><strong>Backward compatible:</strong> The trailing [S] position accommodates archaic spelling where subscripts can appear after vowels.</div>
+    </div>
+    <div class="step">
+      <div class="step-num" style="background:#27ae60">5</div>
+      <div class="step-content"><strong>Complete coverage:</strong> Handles all known Khmer character sequences — modern and historical.</div>
+    </div>
+  </div>
+</section>
+
+<!-- KEYBOARD DEMO -->
+<section id="keyboard-demo" class="fade-in">
+  <h2>7. Interactive Keyboard Demo</h2>
+  <p>See how the <strong>Khmer Angkor Keyboard</strong> (Keyman) automatically corrects incorrect input. Click the buttons below to simulate typing:</p>
+
+  <div class="typing-demo">
+    <div class="demo-label">Simulated Keyboard Input</div>
+    <div class="typing-input" id="keyboardBtns">
+      <button class="type-btn" onclick="typeChar('&#x179F;','U+179F','base')"><span class="k">&#x179F;</span><span class="desc">So (base)</span></button>
+      <button class="type-btn" onclick="typeChar('&#x17CA;','U+17CA','shifter')"><span class="k">&#x17CA;</span><span class="desc">Shifter</span></button>
+      <button class="type-btn" onclick="typeChar('&#x17B8;','U+17B8','vowel')"><span class="k">&#x17B8;</span><span class="desc">Vowel ii</span></button>
+      <button class="type-btn" onclick="typeChar('&#x17BB;','U+17BB','vowel')"><span class="k">&#x17BB;</span><span class="desc">Vowel O</span></button>
+      <button class="type-btn" onclick="typeChar('&#x17BA;','U+17BA','vowel')"><span class="k">&#x17BA;</span><span class="desc">Vowel A</span></button>
+      <button class="type-btn" onclick="typeChar('&#x17D2;','U+17D2','sub')"><span class="k">&#x17D2;</span><span class="desc">Coeng</span></button>
+      <button class="type-btn" onclick="typeChar('&#x178F;','U+178F','sub')"><span class="k">&#x178F;</span><span class="desc">Ta</span></button>
+      <button class="type-btn" onclick="typeChar('&#x1794;','U+1794','base')"><span class="k">&#x1794;</span><span class="desc">Bo (final)</span></button>
+    </div>
+
+    <div class="output-display">
+      <div class="demo-label" style="color:#94a3b8">Character Sequence (what is stored)</div>
+      <div id="charSequence" style="min-height:24px; margin-bottom:12px; font-size:13px;"></div>
+      <div class="demo-label" style="color:#94a3b8">Visual Output (what user sees)</div>
+      <div id="renderOutput" class="render" style="min-height:50px;"></div>
+      <div id="demoMessage" style="margin-top:8px; font-size:13px; min-height:20px;"></div>
+    </div>
+
+    <div style="display:flex; gap:8px; margin-top:12px; flex-wrap:wrap;">
+      <button class="demo-btn danger" onclick="clearDemo()">Clear</button>
+      <button class="demo-btn primary" onclick="runScenario(1)">Scenario 1: Correct</button>
+      <button class="demo-btn primary" onclick="runScenario(2)">Scenario 2: Wrong (auto-fix)</button>
+      <button class="demo-btn primary" onclick="runScenario(3)">Scenario 3: Wrong (auto-fix)</button>
+    </div>
+  </div>
+
+  <h3>What the Scenarios Demonstrate</h3>
+  <div class="card ok" style="margin-bottom:12px">
+    <div class="card-title"><span class="icon">1&#xFE0F;&#x20E3;</span> Scenario 1: Correct Typing</div>
+    <p>&#x179F; &#x2192; U+17CA (shifter) &#x2192; U+17B8 (vowel) &#x2014; keyboard stores as-is, no correction needed.</p>
+  </div>
+  <div class="card ok" style="margin-bottom:12px">
+    <div class="card-title"><span class="icon">2&#xFE0F;&#x20E3;</span> Scenario 2: User types vowel-A then vowel-O</div>
+    <p>&#x179F; &#x2192; U+17BA &#x2192; U+17BB &#x2014; keyboard detects two vowels and <strong>auto-converts</strong> U+17BA+U+17BB &#x2192; U+17CA+U+17B8</p>
+  </div>
+  <div class="card ok" style="margin-bottom:12px">
+    <div class="card-title"><span class="icon">3&#xFE0F;&#x20E3;</span> Scenario 3: User types vowel-O then vowel-A</div>
+    <p>&#x179F; &#x2192; U+17BB &#x2192; U+17B8 &#x2014; keyboard detects two vowels and <strong>auto-converts</strong> U+17BB &#x2192; U+17CA (consonant shifter)</p>
+  </div>
+</section>
+
+<!-- SUMMARY -->
+<section id="summary" class="fade-in">
+  <h2>8. Summary</h2>
+
+  <div class="stat-grid" style="margin-bottom:24px">
+    <div class="stat-card" style="border-top:4px solid #e74c3c">
+      <div class="stat-num" style="color:#e74c3c">4</div>
+      <div class="stat-label">Critical issues identified</div>
+    </div>
+    <div class="stat-card" style="border-top:4px solid #f39c12">
+      <div class="stat-num" style="color:#f39c12">3</div>
+      <div class="stat-label">Conflicting standards</div>
+    </div>
+    <div class="stat-card" style="border-top:4px solid #2e86c1">
+      <div class="stat-num" style="color:#2e86c1">3</div>
+      <div class="stat-label">Proposed solutions</div>
+    </div>
+    <div class="stat-card" style="border-top:4px solid #27ae60">
+      <div class="stat-num" style="color:#27ae60">1</div>
+      <div class="stat-label">Unified rule proposed</div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-top:0">Key Takeaways</h3>
+    <div class="steps">
+      <div class="step"><div class="step-num" style="background:#e74c3c">!</div><div class="step-content">Different character orderings produce identical visual output — users cannot detect encoding errors</div></div>
+      <div class="step"><div class="step-num" style="background:#e74c3c">!</div><div class="step-content">~40% of online Khmer text uses incorrect encoding, fragmenting search results and degrading data quality</div></div>
+      <div class="step"><div class="step-num" style="background:#e74c3c">!</div><div class="step-content">Text sent across platforms may render as garbled/unreadable characters</div></div>
+      <div class="step"><div class="step-num" style="background:#f39c12">&#x2699;</div><div class="step-content">The consonant shifter position is the key point of disagreement between Unicode, OpenType, and Open Forum</div></div>
+      <div class="step"><div class="step-num" style="background:#27ae60">&#x2713;</div><div class="step-content">The proposed unified rule moves the consonant shifter AFTER subscripts, aligning with the majority (OpenType + Open Forum)</div></div>
+      <div class="step"><div class="step-num" style="background:#27ae60">&#x2713;</div><div class="step-content">Smart keyboards (like Khmer Angkor / Keyman) can auto-correct encoding at the input level — zero user effort required</div></div>
+    </div>
+  </div>
+
+  <div class="card" style="text-align:center; margin-top:24px; background: linear-gradient(135deg, #eaf2f8, #d6eaf8);">
+    <p style="font-size:18px; color:var(--blue); font-weight:600; margin-bottom:8px;">This proposal is open for discussion and collaboration.</p>
+    <p style="color:var(--grey)">Contact: Macarasso — SIL International / National Polytechnic Institute of Cambodia</p>
+  </div>
+</section>
+
+</div><!-- /container -->
+
+<script>
+// TAB SWITCHING
+function showTab(e, id) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  e.target.classList.add('active');
+  document.getElementById(id).classList.add('active');
+}
+
+// TYPING DEMO
+let charSeq = [];
+let renderStr = '';
+const colorMap = { base:'#38bdf8', sub:'#c084fc', shifter:'#fbbf24', vowel:'#4ade80', sign:'#f87171' };
+
+function typeChar(glyph, code, type) {
+  charSeq.push({ glyph, code, type });
+  // Auto-correction logic: if two vowels appear, convert
+  applyCorrection();
+  updateDisplay();
+}
+
+function applyCorrection() {
+  const len = charSeq.length;
+  if (len < 2) return;
+  const last = charSeq[len-1];
+  const prev = charSeq[len-2];
+
+  // Rule: U+17BB + U+17B8 -> U+17CA + U+17B8
+  if (prev.code === 'U+17BB' && last.code === 'U+17B8') {
+    charSeq[len-2] = { glyph: '\u17CA', code: 'U+17CA', type: 'shifter' };
+    showMessage('\u2705 Auto-corrected: U+17BB (vowel-O) \u2192 U+17CA (consonant shifter). Two vowels cannot combine!', '#4ade80');
+    return;
+  }
+  // Rule: U+17BA + U+17BB -> U+17CA + U+17B8
+  if (prev.code === 'U+17BA' && last.code === 'U+17BB') {
+    charSeq[len-2] = { glyph: '\u17CA', code: 'U+17CA', type: 'shifter' };
+    charSeq[len-1] = { glyph: '\u17B8', code: 'U+17B8', type: 'vowel' };
+    showMessage('\u2705 Auto-corrected: U+17BA+U+17BB \u2192 U+17CA+U+17B8. Keyboard normalized the sequence!', '#4ade80');
+    return;
+  }
+  // Rule: U+17B8 after U+17BB
+  if (prev.code === 'U+17BB' && last.code === 'U+17BA') {
+    charSeq[len-2] = { glyph: '\u17CA', code: 'U+17CA', type: 'shifter' };
+    charSeq[len-1] = { glyph: '\u17B8', code: 'U+17B8', type: 'vowel' };
+    showMessage('\u2705 Auto-corrected: vowel+vowel combination \u2192 consonant shifter + vowel.', '#4ade80');
+    return;
+  }
+}
+
+function updateDisplay() {
+  const seqEl = document.getElementById('charSequence');
+  const renEl = document.getElementById('renderOutput');
+  seqEl.innerHTML = charSeq.map(c =>
+    `<span style="color:${colorMap[c.type]||'#e2e8f0'}">${c.code}</span>`
+  ).join(' <span style="color:#475569">+</span> ');
+  renEl.textContent = charSeq.map(c => c.glyph).join('');
+}
+
+function showMessage(msg, color) {
+  const el = document.getElementById('demoMessage');
+  el.innerHTML = `<span style="color:${color}">${msg}</span>`;
+  setTimeout(() => { el.innerHTML = ''; }, 6000);
+}
+
+function clearDemo() {
+  charSeq = [];
+  document.getElementById('charSequence').innerHTML = '';
+  document.getElementById('renderOutput').textContent = '';
+  document.getElementById('demoMessage').innerHTML = '';
+}
+
+function runScenario(n) {
+  clearDemo();
+  const scenarios = {
+    1: [
+      ['\u179F','U+179F','base'],
+      ['\u17CA','U+17CA','shifter'],
+      ['\u17B8','U+17B8','vowel'],
+    ],
+    2: [
+      ['\u179F','U+179F','base'],
+      ['\u17BA','U+17BA','vowel'],
+      ['\u17BB','U+17BB','vowel'],
+    ],
+    3: [
+      ['\u179F','U+179F','base'],
+      ['\u17BB','U+17BB','vowel'],
+      ['\u17B8','U+17B8','vowel'],
+    ]
+  };
+  const steps = scenarios[n];
+  let i = 0;
+  function next() {
+    if (i >= steps.length) return;
+    typeChar(steps[i][0], steps[i][1], steps[i][2]);
+    i++;
+    setTimeout(next, 600);
+  }
+  next();
+}
+
+// FADE-IN ANIMATION
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(e => { if (e.isIntersecting) e.target.classList.add('visible'); });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+// NAV ACTIVE STATE
+window.addEventListener('scroll', () => {
+  const sections = document.querySelectorAll('section[id], div[id]');
+  const links = document.querySelectorAll('.nav a');
+  let current = '';
+  sections.forEach(s => { if (window.scrollY >= s.offsetTop - 100) current = s.id; });
+  links.forEach(l => {
+    l.classList.remove('active');
+    if (l.getAttribute('href') === '#' + current) l.classList.add('active');
+  });
+});
+</script>
+
+</body>
+</html>
